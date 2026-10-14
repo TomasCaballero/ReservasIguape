@@ -1,7 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Esquema de Iguapé Aparts (PRD v2).
+// Las fechas de estadía son `Date` sin hora; los instantes son `Timestamptz`.
+// La exclusion constraint de anti-superposición NO se declara acá (Prisma no la
+// soporta): va en SQL dentro de la migración, sobre UnitOccupancy (RNF-03).
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +10,313 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ───────────── Catálogo y tarifas ─────────────
+
+model Category {
+  id           String   @id @default(uuid()) @db.Uuid
+  slug         String   @unique // RF-06: ?categoria=<slug>
+  name         String
+  description  String
+  maxCapacity  Int // RF-04
+  basePriceArs Decimal  @db.Decimal(12, 2) // RF-34
+  basePriceUsd Decimal  @db.Decimal(12, 2)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  units        Unit[]
+  seasonPrices SeasonPrice[]
+  bookings     Booking[]
+  softLocks    SoftLock[]
+}
+
+model Unit {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  categoryId String   @db.Uuid
+  icalToken  String   @unique // RNF-06: >= 128 bits aleatorios (32 hex), generado por la app
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  category    Category        @relation(fields: [categoryId], references: [id])
+  occupancies UnitOccupancy[]
+  bookings    Booking[]
+  blocks      UnitBlock[]
+  softLocks   SoftLock[]
+  icalSources IcalSource[]
+}
+
+model Season {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  startDate DateTime @db.Date // inclusive
+  endDate   DateTime @db.Date // inclusive
+  minNights Int      @default(1) // RF-15
+
+  prices SeasonPrice[]
+}
+
+model SeasonPrice {
+  seasonId   String  @db.Uuid
+  categoryId String  @db.Uuid
+  priceArs   Decimal @db.Decimal(12, 2)
+  priceUsd   Decimal @db.Decimal(12, 2)
+
+  season   Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([seasonId, categoryId])
+}
+
+model DiscountRule {
+  id        String  @id @default(uuid()) @db.Uuid
+  minNights Int // "a partir de X noches"
+  percent   Decimal @db.Decimal(5, 2) // "Y% sobre el total"
+  active    Boolean @default(true) // RF-42
+}
+
+// Fila única (id = 1, forzado por CHECK en la migración). RF-46.
+model SystemSettings {
+  id                 Int @id @default(1)
+  pendingNoticeHours Int @default(24) // aviso sin contacto
+  pendingExpiryDays  Int @default(5) // vencimiento de Pendiente
+  maxNights          Int @default(30)
+  maxAdvanceMonths   Int @default(12)
+  anonymizationDays  Int @default(30)
+}
+
+// ───────────── Ocupación (anti-overbooking) ─────────────
+
+// Una fila por cada rango de noches que ocupa una unidad: reserva activa
+// (Pendiente/Confirmada), bloqueo o soft lock vigente. La migración agrega:
+//   EXCLUDE USING gist ("unitId" WITH =, daterange("startDate","endDate",'[)') WITH &&)
+//   CHECK de que exactamente una de las tres FK está completa.
+// Noches ocupadas = [startDate, endDate): la del check-out queda libre (AC-19).
+model UnitOccupancy {
+  id         String   @id @default(uuid()) @db.Uuid
+  unitId     String   @db.Uuid
+  startDate  DateTime @db.Date
+  endDate    DateTime @db.Date
+  bookingId  String?  @unique @db.Uuid
+  blockId    String?  @unique @db.Uuid
+  softLockId String?  @unique @db.Uuid
+
+  unit     Unit       @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  booking  Booking?   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  block    UnitBlock? @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  softLock SoftLock?  @relation(fields: [softLockId], references: [id], onDelete: Cascade)
+
+  @@index([unitId, startDate, endDate])
+}
+
+model SoftLock {
+  id         String   @id @default(uuid()) @db.Uuid
+  categoryId String   @db.Uuid
+  unitId     String   @db.Uuid
+  checkIn    DateTime @db.Date
+  checkOut   DateTime @db.Date
+  token      String   @unique // identifica al navegador que lo tomó
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  // RF-25 / RNF-07: 15 min exactos, con la hora del servidor de base de datos.
+  expiresAt  DateTime @default(dbgenerated("(now() + '00:15:00'::interval)")) @db.Timestamptz(3)
+
+  category  Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  unit      Unit           @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  occupancy UnitOccupancy?
+
+  @@index([expiresAt])
+}
+
+enum BlockKind {
+  MAINTENANCE
+  OWNER
+  ICAL // evento importado de una OTA (RF-65)
+}
+
+model UnitBlock {
+  id           String    @id @default(uuid()) @db.Uuid
+  unitId       String    @db.Uuid
+  startDate    DateTime  @db.Date
+  endDate      DateTime  @db.Date // exclusive, igual que un check-out
+  kind         BlockKind
+  note         String?
+  icalSourceId String?   @db.Uuid
+  externalUid  String? // UID del evento iCal, para no duplicar en cada sync
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+
+  unit      Unit           @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  source    IcalSource?    @relation(fields: [icalSourceId], references: [id], onDelete: Cascade)
+  occupancy UnitOccupancy?
+
+  @@unique([icalSourceId, externalUid])
+}
+
+// ───────────── iCal ─────────────
+
+model IcalSource {
+  id           String    @id @default(uuid()) @db.Uuid
+  unitId       String    @db.Uuid
+  label        String // ej. "Booking", "Airbnb"
+  url          String
+  lastSyncedAt DateTime? @db.Timestamptz(3)
+  lastError    String?
+
+  unit   Unit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  blocks UnitBlock[]
+}
+
+// Registro de ejecuciones (AC-100).
+model IcalSyncRun {
+  id         String      @id @default(uuid()) @db.Uuid
+  trigger    SyncTrigger
+  startedAt  DateTime    @default(now()) @db.Timestamptz(3)
+  finishedAt DateTime?   @db.Timestamptz(3)
+  ok         Boolean?
+  summary    String?
+}
+
+enum SyncTrigger {
+  CRON
+  MANUAL
+}
+
+// ───────────── Clientes (CRM) ─────────────
+
+enum DocumentType {
+  DNI
+  PASSPORT
+}
+
+// Identificado por Tipo + Nro de documento (RF-57, DA-06). Los datos de contacto
+// se pisan con los de la última reserva (RF-58).
+model Customer {
+  id             String       @id @default(uuid()) @db.Uuid
+  documentType   DocumentType
+  documentNumber String
+  firstName      String
+  lastName       String
+  email          String
+  phone          String // con prefijo, ej. "+54 1155551234"
+  birthDate      DateTime     @db.Date
+  anonymizedAt   DateTime?    @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+
+  bookings              Booking[]
+  anonymizationRequests AnonymizationRequest[]
+
+  @@unique([documentType, documentNumber])
+}
+
+model AnonymizationRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  customerId  String    @db.Uuid
+  requestedAt DateTime  @db.Timestamptz(3) // fecha de la solicitud (RF-61)
+  completedAt DateTime? @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id])
+}
+
+// ───────────── Reservas y cobros ─────────────
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  FINISHED
+}
+
+enum BookingSource {
+  WEB_DIRECT // único origen en V1 (RF-29)
+}
+
+enum Currency {
+  ARS
+  USD
+}
+
+model Booking {
+  id                String        @id @default(uuid()) @db.Uuid
+  customerId        String        @db.Uuid
+  // Categoría y unidad quedan en NULL si se borran, y la reserva conserva su
+  // historial (AC-54). categoryName es la copia del nombre al reservar.
+  categoryId        String?       @db.Uuid
+  categoryName      String
+  unitId            String?       @db.Uuid
+  unitAssigned      Boolean       @default(false) // true cuando el admin eligió la unidad (RF-50)
+  checkIn           DateTime      @db.Date
+  checkOut          DateTime      @db.Date
+  adults            Int
+  children          Int           @default(0)
+  status            BookingStatus @default(PENDING)
+  source            BookingSource @default(WEB_DIRECT)
+  currency          Currency
+  subtotal          Decimal       @db.Decimal(12, 2)
+  discountPercent   Decimal       @default(0) @db.Decimal(5, 2)
+  total             Decimal       @db.Decimal(12, 2)
+  paymentInfoSentAt DateTime?     @db.Timestamptz(3) // RF-52
+  cancelledByExpiry Boolean       @default(false) // RF-54
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
+
+  customer  Customer       @relation(fields: [customerId], references: [id])
+  category  Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  unit      Unit?          @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  guests    Guest[]
+  payments  Payment[]
+  occupancy UnitOccupancy?
+
+  @@index([status, checkIn])
+  @@index([customerId])
+}
+
+// Acompañantes (RF-23).
+model Guest {
+  id             String   @id @default(uuid()) @db.Uuid
+  bookingId      String   @db.Uuid
+  firstName      String
+  lastName       String
+  documentNumber String
+  birthDate      DateTime @db.Date
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+// Cobros manuales (RF-55). Cada cobro queda en su moneda, sin conversión (AC-86).
+model Payment {
+  id                String    @id @default(uuid()) @db.Uuid
+  bookingId         String    @db.Uuid
+  amount            Decimal   @db.Decimal(12, 2)
+  currency          Currency
+  method            String
+  reference         String?
+  receiptPath       String? // archivo; se borra a los 3 meses (RF-56)
+  receiptUploadedAt DateTime? @db.Timestamptz(3)
+  createdAt         DateTime  @default(now()) @db.Timestamptz(3)
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+// ───────────── Admin ─────────────
+
+model Admin {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String // Argon2id (RNF-05)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+}
+
+enum ThrottleKind {
+  IP
+  EMAIL
+}
+
+// Bloqueo de login por IP y por email, independientes (RF-32).
+model LoginThrottle {
+  kind        ThrottleKind
+  key         String
+  failures    Int          @default(0)
+  lockedUntil DateTime?    @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
+
+  @@id([kind, key])
 }

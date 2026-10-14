@@ -9,7 +9,7 @@ Si algo contradice el PRD, o el PRD no lo define: parar y avisar antes de implem
 
 ## Stack
 - Next.js 16 (App Router), Node 22 LTS, npm
-- PostgreSQL 17 en Supabase (extensión `btree_gist`) + Prisma 7.10.0
+- PostgreSQL 17 (extensión `btree_gist`) + Prisma 7.10.0. Desarrollo: Postgres local (base creada en pgAdmin). Supabase queda para más adelante
 - Login propio del admin con Argon2id (sin Supabase Auth)
 - react-day-picker + date-fns (fechas mostradas como `dd/MM/yyyy`)
 - Tests: Vitest (unitarios y concurrencia), Playwright (e2e)
@@ -18,8 +18,8 @@ Si algo contradice el PRD, o el PRD no lo define: parar y avisar antes de implem
 ## Cómo correr
 Nota: el repo aún no tiene código; estos scripts hay que crearlos al armar el proyecto.
 
-- Sin Postgres local ni Docker: una base Supabase de desarrollo y otra de producción.
-- `.env` (en `.gitignore`): `DATABASE_URL` (pooler), `DIRECT_URL` (migraciones), `SESSION_SECRET`, `CRON_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+- Desarrollo con Postgres local (sin Docker); Supabase se incorpora más adelante. Antes de migrar a Supabase, `DATABASE_URL` pasa a ser el pooler y `DIRECT_URL` la conexión directa.
+- `.env` (en `.gitignore`): `DATABASE_URL` (runtime), `DIRECT_URL` (migraciones; en local es la misma URL), `SESSION_SECRET`, `CRON_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`
 - Instalar: `npm install`
 - Migrar: `npx prisma migrate dev`
 - Seed (crea el primer admin): `npx prisma db seed`

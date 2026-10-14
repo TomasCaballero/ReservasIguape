@@ -1,8 +1,8 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-// El CLI (migrate, db seed) usa DIRECT_URL (conexión directa a Supabase);
-// la app en runtime usará DATABASE_URL (pooler).
+// El CLI (migrate, db seed) usa DIRECT_URL. En Postgres local es la misma
+// URL que DATABASE_URL (la de runtime); en Supabase serán pooler vs directa.
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
