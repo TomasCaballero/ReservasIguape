@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/*
+ * Tokens de estilo PROVISORIOS (RNF-02).
+ * Reemplazar por los valores de la guía de estilo de la web principal
+ * cuando esté disponible. Todo color/tipografía de la UI sale de acá.
+ */
+:root {
+  --background: #faf8f5;
+  --foreground: #1f2933;
+  --primary: #2f5d50;
+  --primary-foreground: #ffffff;
+  --muted: #6b7280;
+  --border: #e3ded6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+}
