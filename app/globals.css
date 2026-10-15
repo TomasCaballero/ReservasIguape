@@ -140,3 +140,16 @@ h6 {
     }
   }
 }
+
+/* Selector de fechas (react-day-picker) con la paleta de la web principal. */
+.date-range-picker .rdp-root {
+  --rdp-accent-color: var(--color-primary);
+  --rdp-accent-background-color: var(--color-background-card);
+  --rdp-day_button-border-radius: 0;
+  --rdp-range_start-color: var(--color-text-dark);
+  --rdp-range_end-color: var(--color-text-dark);
+  --rdp-range_middle-color: var(--color-text);
+  --rdp-weekday-opacity: 1;
+  --rdp-today-color: var(--color-primary);
+  color: var(--color-text);
+}
