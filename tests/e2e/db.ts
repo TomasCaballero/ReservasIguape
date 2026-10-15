@@ -61,3 +61,8 @@ export async function occupyAllUnits(categorySlug: string, checkIn: string, chec
     );
   }
 }
+
+/** Los tests de login no deben dejar bloqueos que afecten a los siguientes. */
+export async function clearLoginThrottles() {
+  await sql(`DELETE FROM "LoginThrottle"`);
+}
