@@ -1,13 +1,12 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { clearLoginThrottles, closeDb } from "./db";
+import { clearLoginThrottles } from "./db";
 
 const EMAIL = process.env.ADMIN_EMAIL ?? "";
 const PASSWORD = process.env.ADMIN_PASSWORD ?? "";
 
 test.beforeEach(() => clearLoginThrottles());
 test.afterEach(() => clearLoginThrottles());
-test.afterAll(() => closeDb());
 
 async function login(page: Page, email = EMAIL, password = PASSWORD) {
   await page.goto("/adminpanel");

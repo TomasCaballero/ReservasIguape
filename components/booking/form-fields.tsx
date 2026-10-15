@@ -40,7 +40,7 @@ type TextFieldProps = {
   onChange: (value: string) => void;
   error?: string;
   type?: string;
-  inputMode?: "text" | "numeric" | "email" | "tel";
+  inputMode?: "text" | "numeric" | "decimal" | "email" | "tel";
   autoComplete?: string;
   placeholder?: string;
   maxLength?: number;

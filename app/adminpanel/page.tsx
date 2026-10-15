@@ -1,6 +1,6 @@
+import { AdminShell } from "@/components/admin/AdminShell";
 import { LoginForm } from "@/components/admin/LoginForm";
 import { getCurrentAdmin } from "@/lib/auth/current-admin";
-import { logoutAction } from "./actions";
 
 // `/adminpanel` muestra el login; con sesión iniciada, el panel.
 export default async function AdminHome() {
@@ -19,25 +19,8 @@ export default async function AdminHome() {
   }
 
   return (
-    <>
-      <header className="border-b border-border">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-          <div>
-            <p className="caption-text">Iguapé Aparts</p>
-            <p className="font-display text-2xl">Panel de administración</p>
-          </div>
-          <form action={logoutAction} className="flex items-center gap-4">
-            <span className="text-sm">{admin.email}</span>
-            <button type="submit" className="btn-outlined">
-              Salir
-            </button>
-          </form>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
-        <h1 className="text-3xl">Bienvenido</h1>
-        <p className="mt-2">Las secciones del panel se irán habilitando en las próximas etapas.</p>
-      </main>
-    </>
+    <AdminShell email={admin.email} title="Bienvenido">
+      <p>Elegí una sección en el menú para gestionar el catálogo, las tarifas y los parámetros.</p>
+    </AdminShell>
   );
 }

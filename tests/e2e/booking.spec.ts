@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { addDays, todayInBuenosAires } from "../../lib/booking/dates";
-import { bookingsFor, cleanupE2e, closeDb, countSoftLocks, occupyAllUnits } from "./db";
+import { bookingsFor, cleanupE2e, countSoftLocks, occupyAllUnits } from "./db";
 
 // Flujo completo del portal contra la base de desarrollo (seed: De Luxe con 4 unidades).
 // Los titulares de prueba usan documentos 97xxxxxx y se borran después de cada test.
@@ -20,7 +20,6 @@ const newDoc = () => `97${String((Date.now() + docCounter++) % 1_000_000).padSta
 
 test.afterEach(() => cleanupE2e(startDay));
 
-test.afterAll(() => closeDb());
 
 async function openForm(page: Page, opts: { extraAdults?: number } = {}) {
   await page.goto(`/?checkin=${startDay}&checkout=${endDay}`);
