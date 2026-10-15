@@ -1,32 +1,142 @@
 @import "tailwindcss";
 
 /*
- * Tokens de estilo PROVISORIOS (RNF-02).
- * Reemplazar por los valores de la guía de estilo de la web principal
- * cuando esté disponible. Todo color/tipografía de la UI sale de acá.
+ * Guía de estilo de la web principal (Iguape2026/src/index.css) — RNF-02.
+ * Todo color y tipografía de la UI sale de estos tokens; no usar valores sueltos.
+ *
+ * Contraste (WCAG AA = 4,5 para texto chico):
+ *   text / background            8,90   ok
+ *   primary / background         9,44   ok
+ *   text-dark / primary          11,99  ok
+ *   text-dark / background-alt   11,30  ok
+ *   text-muted / background      4,35   solo texto grande o decorativo
+ *   text-muted / background-card 2,90   NO usar para texto
+ *   text-muted / background-alt  2,05   NO usar para texto
+ * El marrón (text-muted / border) va para bordes y detalles, no para texto chico.
  */
-:root {
-  --background: #faf8f5;
-  --foreground: #1f2933;
-  --primary: #2f5d50;
-  --primary-foreground: #ffffff;
-  --muted: #6b7280;
-  --border: #e3ded6;
-}
+@theme {
+  --color-primary: #e6ef73;
+  --color-primary-hover: #d4dd68;
+  --color-primary-active: #c2cb5d;
+  --color-background: #2b3d24;
+  --color-background-alt: #e4e2c5;
+  --color-background-card: #3f5934;
+  --color-text: #e4e2c5;
+  --color-text-muted: #ad9c78;
+  --color-text-dark: #1e2b18;
+  --color-border: #ad9c78;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-dm-serif-display), serif;
+  --font-body: var(--font-source-sans-3), sans-serif;
+
+  /* Esquinas rectas, como la web principal. */
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
+  --radius-2xl: 0rem;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), sans-serif;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .btn-filled,
+  .btn-outlined {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    min-width: min(200px, 100%);
+    padding: 0 32px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+
+  .btn-filled {
+    background-color: var(--color-primary);
+    color: var(--color-text-dark);
+    border: none;
+    transition:
+      background-color 0.3s ease,
+      transform 0.3s ease;
+  }
+  .btn-filled:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+    transform: scale(1.02);
+  }
+  .btn-filled:active:not(:disabled) {
+    background-color: var(--color-primary-active);
+  }
+
+  .btn-outlined {
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
+    background-color: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    transition: color 0.3s ease;
+  }
+  .btn-outlined::before {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 0;
+    background-color: var(--color-primary);
+    transition: height 0.3s ease;
+    z-index: -1;
+  }
+  .btn-outlined:hover:not(:disabled)::before {
+    height: 100%;
+  }
+  .btn-outlined:hover:not(:disabled) {
+    color: var(--color-text-dark);
+  }
+
+  .btn-filled:disabled,
+  .btn-outlined:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .caption-text {
+    font-family: var(--font-body);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-filled,
+    .btn-outlined,
+    .btn-outlined::before {
+      transition: none;
+    }
+    .btn-filled:hover:not(:disabled) {
+      transform: none;
+    }
+  }
 }
