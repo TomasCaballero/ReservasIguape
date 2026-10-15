@@ -6,6 +6,7 @@ export function createFixture() {
   const tag = `t${randomUUID().slice(0, 8)}`;
   const categoryIds: string[] = [];
   const customerIds: string[] = [];
+  const documents: string[] = [];
 
   return {
     tag,
@@ -130,9 +131,33 @@ export function createFixture() {
       });
     },
 
+    /** Titular válido con un DNI único (queda registrado para limpiarlo al final). */
+    holder(overrides: Record<string, string> = {}) {
+      const documentNumber = `98${Math.floor(Math.random() * 1e6)
+        .toString()
+        .padStart(6, "0")}`;
+      documents.push(documentNumber);
+      return {
+        firstName: "Juan",
+        lastName: "Pérez",
+        email: "juan@mail.com",
+        phonePrefix: "+54",
+        phoneNumber: "1155551234",
+        documentType: "DNI" as const,
+        documentNumber,
+        birthDate: "1990-05-20",
+        ...overrides,
+      };
+    },
+
     async cleanup() {
-      await prisma.booking.deleteMany({ where: { customerId: { in: customerIds } } });
-      await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
+      const docCustomers = await prisma.customer.findMany({
+        where: { documentNumber: { in: documents } },
+        select: { id: true },
+      });
+      const allCustomers = [...customerIds, ...docCustomers.map((c) => c.id)];
+      await prisma.booking.deleteMany({ where: { customerId: { in: allCustomers } } });
+      await prisma.customer.deleteMany({ where: { id: { in: allCustomers } } });
       await prisma.unit.deleteMany({ where: { categoryId: { in: categoryIds } } });
       await prisma.category.deleteMany({ where: { id: { in: categoryIds } } });
     },

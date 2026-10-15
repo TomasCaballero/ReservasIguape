@@ -22,7 +22,7 @@ async function main() {
   if (!email || !password) throw new Error("Faltan ADMIN_EMAIL / ADMIN_PASSWORD en .env");
 
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL, options: "-c timezone=UTC" }),
   });
 
   try {

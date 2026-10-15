@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { addDays, addMonths, formatDMY, todayInBuenosAires } from "../../lib/booking/dates";
 
 // Los precios esperados salen del seed de desarrollo (De Luxe $40.000 / USD 40,

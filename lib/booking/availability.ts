@@ -34,3 +34,30 @@ export async function findAvailableCategories(
     GROUP BY c."id"
   `;
 }
+
+/**
+ * Unidades libres de una categoría en [checkIn, checkOut), ordenadas por nombre.
+ * Misma regla de ocupación que `findAvailableCategories`.
+ */
+export async function findFreeUnitIds(
+  prisma: Pick<PrismaClient, "$queryRaw">,
+  params: { categoryId: string; checkIn: ISODate; checkOut: ISODate },
+): Promise<string[]> {
+  const { categoryId, checkIn, checkOut } = params;
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT u."id"
+    FROM "Unit" u
+    WHERE u."categoryId" = ${categoryId}::uuid
+      AND NOT EXISTS (
+        SELECT 1
+        FROM "UnitOccupancy" o
+        LEFT JOIN "SoftLock" s ON s."id" = o."softLockId"
+        WHERE o."unitId" = u."id"
+          AND o."startDate" < ${checkOut}::date
+          AND o."endDate" > ${checkIn}::date
+          AND (o."softLockId" IS NULL OR s."expiresAt" > now())
+      )
+    ORDER BY u."name", u."id"
+  `;
+  return rows.map((r) => r.id);
+}

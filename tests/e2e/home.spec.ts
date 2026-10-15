@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("el portal público carga en /", async ({ page }) => {
   await page.goto("/");

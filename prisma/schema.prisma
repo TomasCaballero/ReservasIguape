@@ -255,6 +255,9 @@ model Booking {
   total             Decimal       @db.Decimal(12, 2)
   paymentInfoSentAt DateTime?     @db.Timestamptz(3) // RF-52
   cancelledByExpiry Boolean       @default(false) // RF-54
+  // Token del soft lock con el que se confirmó: evita reservas duplicadas por
+  // reintentos o doble clic (idempotencia de la confirmación).
+  requestToken      String?       @unique
   createdAt         DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
 

@@ -1,7 +1,8 @@
 import type { PrismaClient } from "@/app/generated/prisma/client";
 import { findAvailableCategories } from "./availability";
 import { todayInBuenosAires, type ISODate } from "./dates";
-import { quoteStay, type Currency, type Quote } from "./pricing";
+import type { Currency, Quote } from "./pricing";
+import { loadPricingContext, quoteForCategory } from "./quote";
 import { validateGuests, validateStayDates, type StayError } from "./stay-rules";
 
 export type SearchInput = {
@@ -17,9 +18,6 @@ export type SearchResult = {
   availableUnits: number;
   quote: Quote;
 };
-
-const num = (d: { toString(): string }) => Number(d.toString());
-const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
 /** Motor de búsqueda: valida, filtra por disponibilidad y capacidad, y cotiza (RF-04, 08..16). */
 export async function searchStays(
@@ -41,43 +39,16 @@ export async function searchStays(
   });
   if (available.length === 0) return { results: [] };
 
-  const [categories, seasons, rules] = await Promise.all([
+  const [categories, context] = await Promise.all([
     prisma.category.findMany({
       where: { id: { in: available.map((a) => a.categoryId) } },
       orderBy: { name: "asc" },
     }),
-    prisma.season.findMany({
-      where: {
-        startDate: { lte: new Date(input.checkOut) },
-        endDate: { gte: new Date(input.checkIn) },
-      },
-      include: { prices: true },
-    }),
-    prisma.discountRule.findMany({ where: { active: true } }),
+    loadPricingContext(prisma, input.checkIn, input.checkOut),
   ]);
 
-  const results = categories.map((category): SearchResult => {
-    const quote = quoteStay({
-      checkIn: input.checkIn,
-      checkOut: input.checkOut,
-      currency: input.currency,
-      basePrice: { ars: num(category.basePriceArs), usd: num(category.basePriceUsd) },
-      seasons: seasons.map((s) => {
-        const p = s.prices.find((sp) => sp.categoryId === category.id);
-        return {
-          startDate: isoDate(s.startDate),
-          endDate: isoDate(s.endDate),
-          minNights: s.minNights,
-          price: p ? { ars: num(p.priceArs), usd: num(p.priceUsd) } : null,
-        };
-      }),
-      discountRules: rules.map((r) => ({
-        minNights: r.minNights,
-        percent: num(r.percent),
-        active: r.active,
-      })),
-    });
-    return {
+  const results = categories.map(
+    (category): SearchResult => ({
       category: {
         id: category.id,
         slug: category.slug,
@@ -86,8 +57,8 @@ export async function searchStays(
         maxCapacity: category.maxCapacity,
       },
       availableUnits: available.find((a) => a.categoryId === category.id)?.availableUnits ?? 0,
-      quote,
-    };
-  });
+      quote: quoteForCategory(category, context, input),
+    }),
+  );
   return { results };
 }

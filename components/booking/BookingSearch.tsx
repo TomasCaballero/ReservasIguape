@@ -5,7 +5,8 @@ import { nightsBetween, formatDMY, type ISODate } from "@/lib/booking/dates";
 import type { Currency } from "@/lib/booking/pricing";
 import type { SearchResult } from "@/lib/booking/search";
 import { validateGuests, validateStayDates, type StayError } from "@/lib/booking/stay-rules";
-import { formatGuests, formatNights } from "@/lib/format";
+import { formatGuests, formatMoney, formatNights } from "@/lib/format";
+import { BookingForm, EMPTY_FORM, type CompanionValues, type FormValues, type SubmitPayload, type SubmitOutcome } from "./BookingForm";
 import { CategoryCard } from "./CategoryCard";
 import { DateRangePicker, type DateRange } from "./DateRangePicker";
 import { GuestsPicker } from "./GuestsPicker";
@@ -36,6 +37,14 @@ export function BookingSearch({ today, limits, maxGuests, initial, preselected }
   const [currency, setCurrency] = useState<Currency>("ARS");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(preselected?.slug ?? null);
   const [fetched, setFetched] = useState<Fetched | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [step, setStep] = useState<"search" | "form" | "done">("search");
+  const [lockToken, setLockToken] = useState<string | null>(null);
+  const [entering, setEntering] = useState(false);
+  const [lockError, setLockError] = useState<string | null>(null);
+  const [formValues, setFormValues] = useState<FormValues>(EMPTY_FORM);
+  const [companions, setCompanions] = useState<CompanionValues[]>([]);
+  const [reference, setReference] = useState<string | null>(null);
 
   const { checkIn, checkOut } = range;
   const guestsError = validateGuests(guests.adults);
@@ -65,7 +74,7 @@ export function BookingSearch({ today, limits, maxGuests, initial, preselected }
         setFetched({ key: query, payload: null });
       });
     return () => controller.abort();
-  }, [query]);
+  }, [query, refreshKey]);
 
   const current = query && fetched?.key === query ? fetched : null;
   const loading = query !== null && current === null;
@@ -76,6 +85,152 @@ export function BookingSearch({ today, limits, maxGuests, initial, preselected }
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
   const preselectedMissing =
     preselected !== null && results !== null && !results.some((r) => r.category.slug === preselected.slug);
+
+  const selectedResult =
+    results?.find((r) => r.category.slug === selectedSlug && !r.quote.minStayError) ?? null;
+  const totalGuests = guests.adults + guests.children;
+
+  /** RF-25: al entrar al formulario se bloquea una unidad por 15 minutos. */
+  const goToForm = async () => {
+    if (!selectedResult || !checkIn || !checkOut) return;
+    setEntering(true);
+    setLockError(null);
+    try {
+      const res = await fetch("/api/soft-lock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categorySlug: selectedResult.category.slug,
+          checkIn,
+          checkOut,
+          adults: guests.adults,
+          children: guests.children,
+          previousToken: lockToken ?? undefined,
+        }),
+      });
+      const data = (await res.json()) as { token?: string; error?: StayError };
+      if (res.ok && data.token) {
+        setLockToken(data.token);
+        setStep("form");
+      } else {
+        setLockError(data.error?.message ?? "No pudimos reservar el apart. Probá de nuevo.");
+        if (res.status === 409) {
+          setFetched(null);
+          setRefreshKey((k) => k + 1);
+        }
+      }
+    } catch {
+      setLockError("No pudimos reservar el apart. Probá de nuevo.");
+    } finally {
+      setEntering(false);
+    }
+  };
+
+  const backToSearch = () => {
+    if (lockToken) {
+      void fetch("/api/soft-lock", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: lockToken }),
+        keepalive: true,
+      });
+      setLockToken(null);
+    }
+    setStep("search");
+  };
+
+  /** RF-28: confirma la reserva. Ante un error los datos del formulario se conservan. */
+  const submitBooking = async ({ holder, companions: guestsList }: SubmitPayload): Promise<SubmitOutcome> => {
+    if (!selectedResult || !checkIn || !checkOut) return { kind: "error", message: "Faltan datos de la estadía" };
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categorySlug: selectedResult.category.slug,
+          checkIn,
+          checkOut,
+          adults: guests.adults,
+          children: guests.children,
+          currency,
+          holder,
+          companions: guestsList,
+          softLockToken: lockToken ?? undefined,
+        }),
+      });
+      const data = (await res.json()) as {
+        reference?: string;
+        error?: StayError;
+        errors?: Record<string, string>;
+      };
+      if (res.ok && data.reference) {
+        setReference(data.reference);
+        setLockToken(null);
+        setStep("done");
+        return { kind: "ok", reference: data.reference };
+      }
+      if (res.status === 409) {
+        return { kind: "unavailable", message: data.error?.message ?? "Las fechas seleccionadas ya no están disponibles" };
+      }
+      if (data.errors) return { kind: "fieldErrors", errors: data.errors };
+      return { kind: "error", message: data.error?.message ?? "No pudimos crear la reserva. Probá de nuevo." };
+    } catch {
+      return { kind: "error", message: "No pudimos crear la reserva. Probá de nuevo." };
+    }
+  };
+
+  const startOver = () => {
+    setStep("search");
+    setSelectedSlug(null);
+    setRange({ checkIn: null, checkOut: null });
+    setFormValues(EMPTY_FORM);
+    setCompanions([]);
+    setReference(null);
+    setFetched(null);
+  };
+
+  if (step === "done") {
+    return (
+      <section aria-labelledby="listo" className="max-w-2xl">
+        <h2 id="listo" className="text-3xl">
+          ¡Recibimos tu solicitud!
+        </h2>
+        <p className="mt-4" data-testid="booking-reference">
+          Tu código de reserva es <strong>{reference}</strong>.
+        </p>
+        <p className="mt-3">
+          Tu reserva quedó pendiente. Un empleado de Iguapé Aparts te va a contactar por WhatsApp para
+          enviarte el método de pago.
+        </p>
+        <button type="button" className="btn-filled mt-6" onClick={startOver}>
+          Hacer otra búsqueda
+        </button>
+      </section>
+    );
+  }
+
+  if (step === "form" && selectedResult && checkIn && checkOut) {
+    return (
+      <BookingForm
+        today={today}
+        summary={{
+          categoryName: selectedResult.category.name,
+          checkIn,
+          checkOut,
+          nights,
+          guestsText: formatGuests(guests.adults, guests.children),
+          quote: selectedResult.quote,
+        }}
+        values={formValues}
+        companions={companions}
+        maxCompanions={Math.max(0, totalGuests - 1)}
+        onValuesChange={setFormValues}
+        onCompanionsChange={setCompanions}
+        onBack={backToSearch}
+        submit={submitBooking}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-10">
@@ -197,6 +352,24 @@ export function BookingSearch({ today, limits, maxGuests, initial, preselected }
               />
             ))}
           </ul>
+        )}
+
+        {selectedResult && (
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border border-primary p-4">
+            <p>
+              <span className="caption-text block">Tu selección</span>
+              {selectedResult.category.name} · {formatNights(nights)} · Total:{" "}
+              {formatMoney(selectedResult.quote.total, selectedResult.quote.currency)}
+            </p>
+            <button type="button" className="btn-filled" disabled={entering} onClick={goToForm}>
+              {entering ? "Reservando…" : "Continuar"}
+            </button>
+          </div>
+        )}
+        {lockError && (
+          <p role="alert" className="mt-3 border border-primary p-3">
+            {lockError}
+          </p>
         )}
       </section>
     </div>
