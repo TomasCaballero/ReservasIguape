@@ -148,6 +148,11 @@ export function createFixture() {
       });
     },
 
+    /** Fuente iCal de la unidad (se borra con la unidad al limpiar). */
+    icalSource(unitId: string, url = "https://example.invalid/feed.ics") {
+      return prisma.icalSource.create({ data: { unitId, label: `${tag} fuente`, url } });
+    },
+
     /** Titular válido con un DNI único (queda registrado para limpiarlo al final). */
     holder(overrides: Record<string, string> = {}) {
       const documentNumber = `98${Math.floor(Math.random() * 1e6)

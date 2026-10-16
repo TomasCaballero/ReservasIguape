@@ -7,6 +7,7 @@ const SECTIONS = [
   { href: "/adminpanel/reservas", label: "Reservas" },
   { href: "/adminpanel/calendario", label: "Calendario" },
   { href: "/adminpanel/clientes", label: "Clientes" },
+  { href: "/adminpanel/ical", label: "iCal" },
   { href: "/adminpanel/categorias", label: "Categorías" },
   { href: "/adminpanel/unidades", label: "Unidades" },
   { href: "/adminpanel/descuentos", label: "Descuentos" },

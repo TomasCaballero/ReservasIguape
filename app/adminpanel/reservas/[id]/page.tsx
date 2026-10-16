@@ -159,6 +159,7 @@ export default async function BookingDetailPage({ params }: PageProps<"/adminpan
                       </a>
                     </>
                   )}
+                  {!p.receiptPath && p.receiptUploadedAt && <> · Comprobante eliminado (más de 3 meses)</>}
                 </li>
               ))}
             </ul>

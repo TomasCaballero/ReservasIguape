@@ -245,3 +245,28 @@ export function parseBlock(form: BlockForm): Parsed<BlockValue> {
     },
   };
 }
+
+// ───────────── Fuentes iCal (RF-64, P-13) ─────────────
+
+export type IcalSourceForm = { unitId: string; label: string; url: string };
+export type IcalSourceValue = { unitId: string; label: string; url: string };
+
+export function parseIcalSource(form: IcalSourceForm): Parsed<IcalSourceValue> {
+  const errors: FieldErrors = {};
+  if (!form.unitId) errors.unitId = "Elegí una unidad";
+  const label = text(form.label, 40, errors, "label", "La etiqueta");
+  const url = form.url.trim();
+  if (!url) errors.url = REQUIRED;
+  else if (url.length > 500) errors.url = "La URL admite hasta 500 caracteres";
+  else {
+    let valid = false;
+    try {
+      valid = ["http:", "https:"].includes(new URL(url).protocol);
+    } catch {
+      valid = false;
+    }
+    if (!valid) errors.url = "Ingresá una URL que empiece con http:// o https://";
+  }
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  return { ok: true, value: { unitId: form.unitId, label, url } };
+}
