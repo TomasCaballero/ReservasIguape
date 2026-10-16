@@ -83,6 +83,23 @@ export function createFixture() {
       return booking;
     },
 
+    /** Cliente suelto (CRM); se limpia al final junto con sus reservas y solicitudes. */
+    async customer(data: { firstName?: string; lastName?: string; birthDate?: string } = {}) {
+      const customer = await prisma.customer.create({
+        data: {
+          documentType: "DNI",
+          documentNumber: `${tag}-${randomUUID().slice(0, 6)}`,
+          firstName: data.firstName ?? "Test",
+          lastName: data.lastName ?? "Fixture",
+          email: "fixture@example.com",
+          phone: "+54 1100000000",
+          birthDate: new Date(data.birthDate ?? "1990-01-01"),
+        },
+      });
+      customerIds.push(customer.id);
+      return customer;
+    },
+
     /** Soft lock con vencimiento explícito, para fijar T + 15 min. */
     async softLock(
       category: { id: string },
@@ -156,6 +173,7 @@ export function createFixture() {
         select: { id: true },
       });
       const allCustomers = [...customerIds, ...docCustomers.map((c) => c.id)];
+      await prisma.anonymizationRequest.deleteMany({ where: { customerId: { in: allCustomers } } });
       await prisma.booking.deleteMany({ where: { customerId: { in: allCustomers } } });
       await prisma.customer.deleteMany({ where: { id: { in: allCustomers } } });
       await prisma.unit.deleteMany({ where: { categoryId: { in: categoryIds } } });

@@ -6,6 +6,7 @@ const SECTIONS = [
   { href: "/adminpanel", label: "Inicio" },
   { href: "/adminpanel/reservas", label: "Reservas" },
   { href: "/adminpanel/calendario", label: "Calendario" },
+  { href: "/adminpanel/clientes", label: "Clientes" },
   { href: "/adminpanel/categorias", label: "Categorías" },
   { href: "/adminpanel/unidades", label: "Unidades" },
   { href: "/adminpanel/descuentos", label: "Descuentos" },

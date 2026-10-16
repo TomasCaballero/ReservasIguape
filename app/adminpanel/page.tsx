@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { BirthdaysWidget } from "@/components/admin/BirthdaysWidget";
 import { LoginForm } from "@/components/admin/LoginForm";
+import { upcomingBirthdays } from "@/lib/admin/birthdays";
 import { findUncontactedBookings } from "@/lib/admin/bookings";
 import { getCurrentAdmin } from "@/lib/auth/current-admin";
-import { formatDMY } from "@/lib/booking/dates";
+import { formatDMY, todayInBuenosAires } from "@/lib/booking/dates";
 import { prisma } from "@/lib/prisma";
 
 // `/adminpanel` muestra el login; con sesión iniciada, el panel.
@@ -24,6 +26,15 @@ export default async function AdminHome() {
 
   // RF-53: reservas Pendiente sin envío del método de pago pasado el plazo de aviso.
   const uncontacted = await findUncontactedBookings(prisma);
+  // RF-60: cumpleaños de los próximos 30 días (solo clientes no anonimizados).
+  const customers = await prisma.customer.findMany({
+    where: { anonymizedAt: null },
+    select: { id: true, firstName: true, lastName: true, email: true, phone: true, birthDate: true },
+  });
+  const birthdays = upcomingBirthdays(
+    customers.map((c) => ({ ...c, birthDate: c.birthDate.toISOString().slice(0, 10), anonymized: false })),
+    todayInBuenosAires(),
+  );
 
   return (
     <AdminShell email={admin.email} title="Bienvenido">
@@ -47,6 +58,7 @@ export default async function AdminHome() {
           </ul>
         </section>
       )}
+      <BirthdaysWidget birthdays={birthdays} />
       <p>Elegí una sección en el menú para gestionar reservas, calendario, catálogo, tarifas y parámetros.</p>
     </AdminShell>
   );

@@ -101,8 +101,11 @@ export default async function BookingDetailPage({ params }: PageProps<"/adminpan
           Titular
         </h2>
         <p>
-          {booking.customer.firstName} {booking.customer.lastName} · {DOCUMENT[booking.customer.documentType]}{" "}
-          {booking.customer.documentNumber}
+          <Link href={`/adminpanel/clientes/${booking.customer.id}`} className="underline underline-offset-4">
+            {booking.customer.firstName} {booking.customer.lastName}
+          </Link>{" "}
+          · {DOCUMENT[booking.customer.documentType]} {booking.customer.documentNumber}
+          {booking.customer.anonymizedAt && <strong> · Cliente anonimizado</strong>}
         </p>
         <p>
           {booking.customer.email} · {booking.customer.phone}

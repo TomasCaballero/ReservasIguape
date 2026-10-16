@@ -135,3 +135,39 @@ export async function pendingExpiryDays(): Promise<number> {
 export async function setPendingExpiryDays(days: number) {
   await sql(`UPDATE "SystemSettings" SET "pendingExpiryDays" = $1 WHERE "id" = 1`, [days]);
 }
+
+// ───────────── Datos de prueba del CRM (titulares 95xxxxxx) ─────────────
+
+/** Cliente 95xxxxxx con un cumpleaños en `birthDate`, y una reserva Pendiente si se indica unidad. */
+export async function seedCrmCustomer(birthDate: string, categoryId?: string, unitId?: string, checkIn?: string, checkOut?: string) {
+  const [customer] = await sql<{ id: string }>(
+    `INSERT INTO "Customer" ("id", "documentType", "documentNumber", "firstName", "lastName", "email", "phone", "birthDate", "updatedAt")
+     VALUES (gen_random_uuid(), 'DNI', $1, 'Carmen', 'Cumple', 'carmen@mail.com', '+54 1155559999', $2::date, now()) RETURNING "id"`,
+    [`95${String(Math.floor(Math.random() * 1_000_000)).padStart(6, "0")}`, birthDate],
+  );
+  let bookingId: string | null = null;
+  if (categoryId && unitId && checkIn && checkOut) {
+    const [booking] = await sql<{ id: string }>(
+      `INSERT INTO "Booking" ("id", "customerId", "categoryId", "categoryName", "unitId", "checkIn", "checkOut", "adults", "currency", "subtotal", "total", "updatedAt")
+       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, 'e2e', $3::uuid, $4::date, $5::date, 2, 'ARS', 0, 0, now()) RETURNING "id"`,
+      [customer.id, categoryId, unitId, checkIn, checkOut],
+    );
+    await sql(
+      `INSERT INTO "UnitOccupancy" ("id", "unitId", "startDate", "endDate", "bookingId")
+       VALUES (gen_random_uuid(), $1::uuid, $2::date, $3::date, $4::uuid)`,
+      [unitId, checkIn, checkOut, booking.id],
+    );
+    bookingId = booking.id;
+  }
+  return { id: customer.id, bookingId };
+}
+
+/** Borra los clientes de prueba (por id, porque al anonimizarse pierden el prefijo 95) y sus solicitudes. */
+export async function cleanupCrmE2e(ids: string[]) {
+  const where = `"customerId" IN (SELECT "id" FROM "Customer" WHERE "documentNumber" LIKE '95%' OR "id" = ANY($1::uuid[]))`;
+  await sql(`DELETE FROM "AnonymizationRequest" WHERE ${where}`, [ids]);
+  await sql(`DELETE FROM "Booking" WHERE ${where}`, [ids]);
+  await sql(`DELETE FROM "Customer" WHERE "documentNumber" LIKE '95%' OR "id" = ANY($1::uuid[])`, [ids]);
+  await sql(`DELETE FROM "Unit" WHERE "categoryId" IN (SELECT "id" FROM "Category" WHERE "name" LIKE 'E2E CRM%')`);
+  await sql(`DELETE FROM "Category" WHERE "name" LIKE 'E2E CRM%'`);
+}
