@@ -26,3 +26,18 @@ export function formatGuests(adults: number, children: number): string {
   if (children === 0) return a;
   return `${a}, ${children} ${children === 1 ? "niño" : "niños"}`;
 }
+
+const dateTimeFormat = new Intl.DateTimeFormat("es-AR", {
+  timeZone: "America/Argentina/Buenos_Aires",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** "15/10/2026 14:30" en hora de Buenos Aires. */
+export function formatDateTime(date: Date): string {
+  return dateTimeFormat.format(date).replace(",", "");
+}

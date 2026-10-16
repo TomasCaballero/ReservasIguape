@@ -203,3 +203,45 @@ export function parseSettings(form: SettingsForm): Parsed<SettingsValue> {
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return { ok: true, value };
 }
+
+// ───────────── Bloqueos manuales ─────────────
+
+export type BlockForm = { unitId: string; startDate: string; endDate: string; kind: string; note: string };
+export type BlockValue = {
+  unitId: string;
+  startDate: ISODate;
+  endDate: ISODate;
+  kind: "MAINTENANCE" | "OWNER";
+  note: string;
+};
+
+export function parseBlock(form: BlockForm): Parsed<BlockValue> {
+  const errors: FieldErrors = {};
+  if (!form.unitId) errors.unitId = "Elegí una unidad";
+
+  const startDate = dmyToISODate(form.startDate);
+  const endDate = dmyToISODate(form.endDate);
+  if (!form.startDate.trim()) errors.startDate = REQUIRED;
+  else if (!startDate) errors.startDate = "Ingresá una fecha válida (dd/mm/aaaa)";
+  if (!form.endDate.trim()) errors.endDate = REQUIRED;
+  else if (!endDate) errors.endDate = "Ingresá una fecha válida (dd/mm/aaaa)";
+  if (startDate && endDate && endDate <= startDate) {
+    errors.endDate = "La fecha de fin debe ser posterior a la de inicio";
+  }
+
+  if (form.kind !== "MAINTENANCE" && form.kind !== "OWNER") errors.kind = "Elegí el motivo";
+  const note = form.note.trim();
+  if (note.length > 200) errors.note = "La nota admite hasta 200 caracteres";
+
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  return {
+    ok: true,
+    value: {
+      unitId: form.unitId,
+      startDate: startDate as ISODate,
+      endDate: endDate as ISODate,
+      kind: form.kind as "MAINTENANCE" | "OWNER",
+      note,
+    },
+  };
+}

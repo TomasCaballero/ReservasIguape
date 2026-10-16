@@ -16,8 +16,6 @@ Si algo contradice el PRD, o el PRD no lo define: parar y avisar antes de implem
 - Fechas de estadía (check-in/check-out): tipo `date` sin hora. "Hoy" se calcula en `America/Argentina/Buenos_Aires`.
 
 ## Cómo correr
-Nota: el repo aún no tiene código; estos scripts hay que crearlos al armar el proyecto.
-
 - Desarrollo con Postgres local (sin Docker); Supabase se incorpora más adelante. Antes de migrar a Supabase, `DATABASE_URL` pasa a ser el pooler y `DIRECT_URL` la conexión directa.
 - `.env` (en `.gitignore`): `DATABASE_URL` (runtime), `DIRECT_URL` (migraciones; en local es la misma URL), `SESSION_SECRET`, `CRON_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`
 - Instalar: `npm install`
@@ -28,6 +26,7 @@ Nota: el repo aún no tiene código; estos scripts hay que crearlos al armar el 
   - Panel admin: `/adminpanel`
 - Tests: `npm test` (Vitest) y `npx playwright test` (e2e); corren contra la base de desarrollo
 - Resetear contraseña del admin: `npm run admin:reset-password`
+- Comprobantes de cobros (RF-55): se guardan en `storage/receipts/` (fuera de `public`, en `.gitignore`; configurable con `RECEIPTS_DIR`) y solo se entregan por `/api/admin/payments/[id]/receipt` con sesión de admin
 
 ## Valores y reglas que importan
 | Qué | Valor |

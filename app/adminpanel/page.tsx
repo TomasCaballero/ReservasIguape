@@ -1,6 +1,10 @@
+import Link from "next/link";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { LoginForm } from "@/components/admin/LoginForm";
+import { findUncontactedBookings } from "@/lib/admin/bookings";
 import { getCurrentAdmin } from "@/lib/auth/current-admin";
+import { formatDMY } from "@/lib/booking/dates";
+import { prisma } from "@/lib/prisma";
 
 // `/adminpanel` muestra el login; con sesión iniciada, el panel.
 export default async function AdminHome() {
@@ -18,9 +22,32 @@ export default async function AdminHome() {
     );
   }
 
+  // RF-53: reservas Pendiente sin envío del método de pago pasado el plazo de aviso.
+  const uncontacted = await findUncontactedBookings(prisma);
+
   return (
     <AdminShell email={admin.email} title="Bienvenido">
-      <p>Elegí una sección en el menú para gestionar el catálogo, las tarifas y los parámetros.</p>
+      {uncontacted.length > 0 && (
+        <section aria-labelledby="sin-contacto" className="border border-primary p-4" data-testid="uncontacted-notice">
+          <h2 id="sin-contacto" className="text-2xl">
+            Reservas pendientes sin contactar
+          </h2>
+          <p className="mt-1">
+            Todavía no se registró el envío del método de pago. Siguen Pendientes y ocupando la unidad.
+          </p>
+          <ul className="mt-3 flex flex-col gap-1">
+            {uncontacted.map((b) => (
+              <li key={b.id}>
+                <Link href={`/adminpanel/reservas/${b.id}`} className="underline underline-offset-4">
+                  #{b.reference} · {b.holderName} · {b.categoryName} · {formatDMY(b.checkIn)} – {formatDMY(b.checkOut)}
+                </Link>{" "}
+                (hace {b.hoursWaiting} h)
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <p>Elegí una sección en el menú para gestionar reservas, calendario, catálogo, tarifas y parámetros.</p>
     </AdminShell>
   );
 }

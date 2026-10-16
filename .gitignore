@@ -51,3 +51,6 @@ next-env.d.ts
 
 # env: se versiona solo el ejemplo
 !.env.example
+
+# comprobantes de pago (RF-55): nunca al repositorio
+/storage/

@@ -1,3 +1,5 @@
+import { rm } from "node:fs/promises";
+import path from "node:path";
 import { Pool } from "pg";
 
 // Acceso SQL directo para preparar y verificar datos en los e2e (Playwright carga
@@ -70,10 +72,19 @@ export async function clearLoginThrottles() {
 // ───────────── Datos de prueba del panel (categorías "E2E ...", titulares 96xxxxxx) ─────────────
 
 export async function cleanupAdminE2e() {
+  // Comprobantes subidos por los tests: se borran los archivos antes que las filas.
+  const receipts = await sql<{ receiptPath: string }>(
+    `SELECT p."receiptPath" FROM "Payment" p JOIN "Booking" b ON b."id" = p."bookingId"
+     JOIN "Customer" c ON c."id" = b."customerId"
+     WHERE c."documentNumber" LIKE '96%' AND p."receiptPath" IS NOT NULL`,
+  );
+  const dir = process.env.RECEIPTS_DIR ?? path.join(process.cwd(), "storage", "receipts");
+  for (const r of receipts) await rm(path.join(dir, r.receiptPath), { force: true });
   await sql(`DELETE FROM "Booking" WHERE "customerId" IN (SELECT "id" FROM "Customer" WHERE "documentNumber" LIKE '96%')`);
   await sql(`DELETE FROM "Customer" WHERE "documentNumber" LIKE '96%'`);
   await sql(`DELETE FROM "Unit" WHERE "categoryId" IN (SELECT "id" FROM "Category" WHERE "name" LIKE 'E2E %')`);
   await sql(`DELETE FROM "Category" WHERE "name" LIKE 'E2E %'`);
+  await sql(`DELETE FROM "UnitBlock" WHERE "note" = 'e2e-admin'`);
   await sql(`DELETE FROM "Season" WHERE "name" LIKE 'E2E %'`);
   await sql(`DELETE FROM "DiscountRule" WHERE "minNights" = 2 AND "percent" IN (13, 21)`);
 }
@@ -101,7 +112,7 @@ export async function seedPendingBooking(categoryId: string, unitId: string, che
   const [customer] = await sql<{ id: string }>(
     `INSERT INTO "Customer" ("id", "documentType", "documentNumber", "firstName", "lastName", "email", "phone", "birthDate", "updatedAt")
      VALUES (gen_random_uuid(), 'DNI', $1, 'Laura', 'Gómez', 'laura@mail.com', '+54 1155550000', '1990-01-01', now()) RETURNING "id"`,
-    [`96${String(Date.now() % 1_000_000).padStart(6, "0")}`],
+    [`96${String(Math.floor(Math.random() * 1_000_000)).padStart(6, "0")}`],
   );
   const [booking] = await sql<{ id: string }>(
     `INSERT INTO "Booking" ("id", "customerId", "categoryId", "categoryName", "unitId", "checkIn", "checkOut", "adults", "currency", "subtotal", "total", "updatedAt")

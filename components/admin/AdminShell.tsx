@@ -4,6 +4,8 @@ import { logoutAction } from "@/app/adminpanel/actions";
 
 const SECTIONS = [
   { href: "/adminpanel", label: "Inicio" },
+  { href: "/adminpanel/reservas", label: "Reservas" },
+  { href: "/adminpanel/calendario", label: "Calendario" },
   { href: "/adminpanel/categorias", label: "Categorías" },
   { href: "/adminpanel/unidades", label: "Unidades" },
   { href: "/adminpanel/descuentos", label: "Descuentos" },
