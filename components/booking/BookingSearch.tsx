@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { nightsBetween, formatDMY, type ISODate } from "@/lib/booking/dates";
 import type { Currency } from "@/lib/booking/pricing";
 import type { SearchResult } from "@/lib/booking/search";
@@ -46,6 +46,13 @@ export function BookingSearch({ today, limits, maxGuests, initial, preselected }
   const [companions, setCompanions] = useState<CompanionValues[]>([]);
   const [reference, setReference] = useState<string | null>(null);
 
+  const resultsRef = useRef<HTMLElement>(null);
+
+  // Al pasar de pantalla se arranca arriba, no con el scroll de la anterior.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [step]);
+
   const { checkIn, checkOut } = range;
   const guestsError = validateGuests(guests.adults);
   const stayError =
@@ -75,6 +82,11 @@ export function BookingSearch({ today, limits, maxGuests, initial, preselected }
       });
     return () => controller.abort();
   }, [query, refreshKey]);
+
+  // Con las dos fechas elegidas, se lleva a la vista la lista de aparts.
+  useEffect(() => {
+    if (query) resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [query]);
 
   const current = query && fetched?.key === query ? fetched : null;
   const loading = query !== null && current === null;
@@ -234,7 +246,13 @@ export function BookingSearch({ today, limits, maxGuests, initial, preselected }
 
   return (
     <div className="flex flex-col gap-10">
-      <section aria-labelledby="fechas" className="grid gap-8 lg:grid-cols-[auto_1fr]">
+      <div>
+        <h1 className="text-4xl">Reservá tu estadía</h1>
+        <p className="mt-2 max-w-prose">
+          Elegí las fechas y la cantidad de huéspedes para ver los aparts disponibles y su precio final.
+        </p>
+      </div>
+      <section aria-labelledby="fechas" className="grid gap-8 border border-border bg-background-card p-6 lg:grid-cols-[auto_1fr]">
         <div>
           <h2 id="fechas" className="text-2xl">
             Fechas
@@ -308,7 +326,7 @@ export function BookingSearch({ today, limits, maxGuests, initial, preselected }
         </div>
       </section>
 
-      <section aria-labelledby="resultados" aria-live="polite">
+      <section ref={resultsRef} aria-labelledby="resultados" aria-live="polite" className="scroll-mt-4">
         <h2 id="resultados" className="text-2xl">
           Aparts disponibles
         </h2>
@@ -355,7 +373,7 @@ export function BookingSearch({ today, limits, maxGuests, initial, preselected }
         )}
 
         {selectedResult && (
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border border-primary p-4">
+          <div className="sticky bottom-0 z-10 mt-8 flex flex-wrap items-center justify-between gap-4 border border-primary bg-background-card p-4">
             <p>
               <span className="caption-text block">Tu selección</span>
               {selectedResult.category.name} · {formatNights(nights)} · Total:{" "}

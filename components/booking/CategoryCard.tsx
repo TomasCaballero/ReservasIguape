@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { SearchResult } from "@/lib/booking/search";
 import { formatDiscount, formatMoney, formatNights } from "@/lib/format";
 
@@ -20,19 +21,29 @@ export function CategoryCard({ result, selected, onSelect }: Props) {
 
   return (
     <li
-      className={`flex flex-col gap-4 border bg-background-card p-5 ${
+      className={`flex flex-col gap-4 border bg-background-card ${
         selected ? "border-primary" : "border-border"
       }`}
       data-testid="category-card"
       data-slug={category.slug}
     >
-      <div>
+      <div className="relative aspect-[4/3] w-full">
+        <Image
+          src={`/aparts/${category.slug}.webp`}
+          alt={`Apart ${category.name}`}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+          className="object-cover"
+        />
+      </div>
+
+      <div className="px-5">
         <h3 className="text-2xl">{category.name}</h3>
         <p className="mt-1">{category.description}</p>
         <p className="caption-text mt-2">Hasta {category.maxCapacity} huéspedes</p>
       </div>
 
-      <div>
+      <div className="px-5">
         {mixedPrices ? (
           <ul>
             {[...groups].map(([price, count]) => (
@@ -62,13 +73,13 @@ export function CategoryCard({ result, selected, onSelect }: Props) {
       </div>
 
       {blocked ? (
-        <p role="alert" className="border border-primary p-3">
+        <p role="alert" className="mx-5 mb-5 border border-primary p-3">
           {quote.minStayError}
         </p>
       ) : (
         <button
           type="button"
-          className={selected ? "btn-filled" : "btn-outlined"}
+          className={`${selected ? "btn-filled" : "btn-outlined"} mx-5 mb-5`}
           aria-pressed={selected}
           onClick={onSelect}
         >

@@ -26,10 +26,6 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
-        <h1 className="text-4xl">Reservá tu estadía</h1>
-        <p className="mt-2 mb-10 max-w-prose">
-          Elegí las fechas y la cantidad de huéspedes para ver los aparts disponibles y su precio final.
-        </p>
         <BookingSearch
           today={todayInBuenosAires()}
           limits={{

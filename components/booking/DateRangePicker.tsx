@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { format } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import { es } from "react-day-picker/locale";
 import "react-day-picker/style.css";
@@ -60,6 +61,12 @@ export function DateRangePicker({ value, onChange, today, maxAdvanceMonths, maxN
         mode="range"
         locale={es}
         weekStartsOn={1}
+        formatters={{
+          formatCaption: (month) => {
+            const text = format(month, "LLLL yyyy", { locale: es });
+            return text.charAt(0).toUpperCase() + text.slice(1);
+          },
+        }}
         numberOfMonths={wide ? 2 : 1}
         defaultMonth={toDate(checkIn ?? today)}
         startMonth={toDate(today)}
