@@ -36,6 +36,9 @@ Solo colores y tipografías de la web principal (`C:\Users\tomas\MisProyectos\Ig
 | 5 | Login del administrador con bloqueo por intentos | `4c2d125` |
 | 6 | Admin: catálogo, tarifas, temporadas, descuentos y parámetros | `3b52a90` |
 | 7 | Admin: reservas, calendario, bloqueos, método de pago y cobros | `ef9a4b4` |
+| 8 | CRM: clientes, cumpleañeros y anonimización | `9f550ea` |
+| 9 | iCal (feed e importación), sincronización y tareas programadas | `5ab2536` |
+| 10 | Cierre: e2e completo, anchos y teclado, estilo, carga, seguridad y documentación | pendiente de commit |
 
 ### Decisiones de la Fase 7 (a recordar)
 - Confirmada → Pendiente se rechaza ("Transición no permitida", RF-48/AC-70).
@@ -47,31 +50,21 @@ Solo colores y tipografías de la web principal (`C:\Users\tomas\MisProyectos\Ig
 
 ---
 
-## Fases pendientes
+### Decisiones de las Fases 8 a 10 (a recordar)
+- Anonimización: reemplaza titular y acompañantes y conserva fechas, categoría, montos y cobros; anonimizar dos veces responde 409 (índice único parcial por cliente, D-04). El `documentNumber` anonimizado es único por cliente (D-03).
+- iCal: el feed (`/api/ical/<token>.ics`, token de 128 bits, 404 sin token válido) trae solo fechas, sin datos personales. `SUMMARY` de los eventos importados no se persiste ni se loguea.
+- Cron: `POST /api/cron/tick` con `Authorization: Bearer <CRON_SECRET>` (401 sin credencial); lo dispara un scheduler externo cada ≤ 15 min (P-03). Hace sincronización iCal, vencimiento de Pendientes (RF-54), limpieza de comprobantes (RF-56), `LoginThrottle` y soft locks.
+- Fase 10: `tests/e2e/full-flow.spec.ts` (portal → panel → CRM → feed), `responsive-keyboard.spec.ts` (360/768/1920 px y teclado), `style-audit.spec.ts` (colores y tipografías contra `app/globals.css`), `tests/db/public-endpoints.test.ts` (sin datos personales públicos) y `scripts/load-availability.ts` (p95 de `/api/availability`, contra `npm run build && npm start`).
+- `npm audit`: los hallazgos altos están solo en herramientas de desarrollo (`eslint-config-next`, CLI de `prisma`), no en el código que corre en producción.
 
-### Fase 8 — CRM (RF-57..62 aprox.; confirmar numeración en el PRD)
-- Clientes identificados por tipo + número de documento (DA-06 / RF-57).
-- Listado y ficha de cliente con historial de reservas.
-- Widget de cumpleañeros de los próximos 30 días (29/02 se celebra el 28/02 en años no bisiestos).
-- Solicitud de anonimización (`AnonymizationRequest`) y acción de anonimizar; marcar solicitudes con plazo vencido (parámetro `anonymizationDays`, 30 por defecto).
-- Riesgo del PRD no mitigado: pisar email/teléfono de un cliente existente al reservar con el mismo documento (RF-58).
-- No loguear datos personales.
+---
 
-### Fase 9 — iCal y cron
-- Feed iCal por unidad con token de ≥128 bits; token inválido → 404; sin datos personales (AC-31, 38, 39).
-- Importación de URLs iCal de OTAs como bloqueos (`UnitBlock` kind ICAL, `IcalSource`, `IcalSyncRun`); sincronización cada 15 min y manual desde el panel.
-- **Decisión pendiente del usuario:** qué hacer con eventos iCal que chocan con reservas existentes.
-- Vencimiento automático de reservas Pendiente (RF-54): cancelar con `cancelledByExpiry=true` tras `pendingExpiryDays`.
-- Limpieza de comprobantes a los 3 meses (RF-56), de `LoginThrottle` (crece con emails desconocidos) y de soft locks vencidos.
-- Endpoints cron protegidos con `CRON_SECRET`.
-
-### Fase 10 — Cierre
-- Pruebas e2e completas del flujo, AC-102 (navegación por teclado en todo el flujo), AC-103 (auditoría de estilo), RNF-04 (p95 < 1,5 s con 20 usuarios concurrentes), RNF-03 (20 confirmaciones sobre la última unidad → 1 reserva y 19 × 409).
-- `npm audit`, revisión de seguridad (IP desde `X-Forwarded-For` requiere proxy de confianza en producción; la sesión del admin no tiene revocación en el servidor).
-- Actualizar `AGENTS.md`. Regenerar el grafo con graphify solo si existe `graphify-out`.
-- Pendiente de producto: logo (la web principal solo tiene texto en el header).
-
-## Otros pendientes
+## Pendientes de producto
+- Logo (la web principal solo tiene texto en el header).
 - Pasar a Supabase (DATABASE_URL = pooler, DIRECT_URL = conexión directa) y los comprobantes a Supabase Storage.
+- Configurar el scheduler real del cron en el hosting elegido (P-03) y comprobar ≥ 4 corridas en 60 min.
+- IP del login desde `X-Forwarded-For`: en producción requiere un proxy de confianza; la sesión del admin no tiene revocación en el servidor.
+
+## Otros datos
 - Países del teléfono: lista de 17 en `lib/booking/countries.ts`.
 - Acompañantes: 4 datos obligatorios si se agrega uno; máximo adultos + niños − 1.

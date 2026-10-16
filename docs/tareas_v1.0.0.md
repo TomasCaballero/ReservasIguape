@@ -23,9 +23,9 @@
 
 > Esta sección la actualiza el modelo de IA al terminar cada tarea. Es lo primero que debe leer quien retoma el trabajo.
 
-- **Fase en curso:** Fase 9 — iCal y cron cerrada (11/11); falta la aprobación del usuario para commitear y pushear.
-- **Próxima tarea:** **10.1** (Fase 10), tras el commit de la Fase 9.
-- **Última tarea completada:** 9.11 (tests de la Fase 9).
+- **Fase en curso:** Fase 10 — hechas 10.1–10.7 y la corrida de 10.10; pendientes 10.8 (cron real 60 min, lo ejecuta el usuario) y 10.9 (hecha: `AGENTS.md`, `FASES.md` y `.env.example` actualizados).
+- **Próxima tarea:** **10.8** y **10.9** (requieren al usuario).
+- **Última tarea completada:** 10.7. Corrida final: build, `tsc`, `eslint` limpios; Vitest 29 archivos / 210 tests; Playwright 80 pasan, 1 intermitente (timeout de `networkidle` en `admin.spec.ts` > portal sin enlace) que pasó al repetir; base limpia.
 - **Rama de trabajo:** `main`. Hay cambios sin commitear: `AGENTS.md` (regenerado con la skill `create-agents-md`), `docs/` (plan y tareas), `FASES.md` y las skills nuevas de `skills/`. No commitear sin aprobación.
 - **Documentos creados:** [`AGENTS.md`](../AGENTS.md), [`plan_implementacion_v1.0.0.md`](./plan_implementacion_v1.0.0.md), este archivo.
 - **Puntos abiertos pendientes de confirmar:** ninguno. El usuario delegó `P-01`..`P-09` y `D-04` al criterio del agente (2026-10-15); se aplican los defaults del plan, incluida la migración del índice único parcial de `D-04`. Antes de 10.8 hay que coordinar con el usuario la configuración real del scheduler (`P-03`).
@@ -525,7 +525,7 @@ npx prisma migrate deploy && npx prisma generate
 > **Regla de la fase:** esta fase no agrega funcionalidad. Si una auditoría descubre un hueco de una fase anterior, **parar y avisar** antes de arreglarlo. La actualización de `AGENTS.md` va con diff aprobado por el usuario.
 > **Cobertura PRD:** RNF-01, RNF-02, RNF-03, RNF-04, RNF-05 · AC-100, AC-102, AC-103, AC-104, AC-105, AC-106, AC-107 y la trazabilidad de AC-01..108
 
-- [ ] **10.1 E2E de punta a punta**
+- [x] **10.1 E2E de punta a punta**
   - **Objetivo:** un solo test recorre portal → panel → CRM → feed iCal.
   - **Depende de:** Fase 9 completa
   - **Archivos a crear:** `tests/e2e/full-flow.spec.ts`.
@@ -536,8 +536,9 @@ npx prisma migrate deploy && npx prisma generate
     3. Limpiar todo lo creado.
   - **Verificación:** `npx playwright test tests/e2e/full-flow.spec.ts` → pasa · `npx playwright test` → sin regresiones · base limpia (§3).
   - **Ref:** [plan §10.1](./plan_implementacion_v1.0.0.md) | AC-33, 42, 43, 66, 73, 76, 82, 88, 98
+  - **Hecho (2026-10-15):** `tests/e2e/full-flow.spec.ts` (1 test; estable en 4 corridas). Documento 95xxxxxx.
 
-- [ ] **10.2 Anchos y teclado**
+- [x] **10.2 Anchos y teclado**
   - **Objetivo:** el flujo del portal no tiene scroll horizontal y se opera con teclado y puntero.
   - **Depende de:** —
   - **Archivos a crear:** `tests/e2e/responsive-keyboard.spec.ts`.
@@ -549,8 +550,9 @@ npx prisma migrate deploy && npx prisma generate
     4. Si falla, **parar y avisar** el hueco.
   - **Verificación:** `npx playwright test tests/e2e/responsive-keyboard.spec.ts` → pasa · base limpia.
   - **Ref:** [plan §10.2](./plan_implementacion_v1.0.0.md) | RNF-01 · AC-102
+  - **Hecho (2026-10-15):** `tests/e2e/responsive-keyboard.spec.ts` (4 tests: 360/768/1920 px y flujo solo con teclado; el calendario se recorre con Tab + flechas por el tabindex móvil de react-day-picker).
 
-- [ ] **10.3 Auditoría de estilo**
+- [x] **10.3 Auditoría de estilo**
   - **Objetivo:** 0 colores y 0 familias tipográficas fuera de la guía.
   - **Depende de:** —
   - **⚠️ Confirmar P-06** antes de escribir código.
@@ -562,8 +564,9 @@ npx prisma migrate deploy && npx prisma generate
     3. Recorrer el portal (y el panel, por consistencia) tomando `getComputedStyle` de cada elemento visible: `color`, `background-color`, `border-color` y `font-family`; fallar listando los que queden fuera.
   - **Verificación:** `npx playwright test tests/e2e/style-audit.spec.ts` → pasa (0 fuera de la guía).
   - **Ref:** [plan §10.3](./plan_implementacion_v1.0.0.md) | RNF-02 · AC-103 | D-14 | P-06
+  - **Hecho (2026-10-15):** `tests/e2e/style-audit.spec.ts` (3 tests; 0 elementos fuera de la guía en portal y panel; incluye un test que comprueba que el detector atrapa un color y una fuente ajenos). P-06: se aplicó el default del plan (tokens de `globals.css`).
 
-- [ ] **10.4 Re-verificación de requisitos transversales**
+- [x] **10.4 Re-verificación de requisitos transversales**
   - **Objetivo:** confirmar RNF-03, RNF-05, AC-106 y AC-107 con tests que corren en la suite.
   - **Depende de:** —
   - **Archivos a crear:** `tests/db/public-endpoints.test.ts`.
@@ -575,8 +578,9 @@ npx prisma migrate deploy && npx prisma generate
     4. AC-107: `public-endpoints.test.ts` consulta `/api/availability`, `/api/bookings`, `/api/soft-lock` e `/api/ical/*` con y sin identificadores y comprueba que ninguna respuesta trae nombre, documento, nacimiento, email ni teléfono de otros huéspedes.
   - **Verificación:** `npx vitest run tests/db/create-booking.test.ts tests/db/bookings-api.test.ts tests/unit/password.test.ts tests/db/public-endpoints.test.ts` → todos pasan · `npx playwright test tests/e2e/admin.spec.ts` → pasa.
   - **Ref:** [plan §10.4](./plan_implementacion_v1.0.0.md) | RNF-03, RNF-05 · AC-41, 105, 106, 107
+  - **Hecho (2026-10-15):** `tests/db/public-endpoints.test.ts` (4 tests) y un test nuevo en `admin.spec.ts` con todas las rutas del panel y las 3 APIs admin. RNF-03 y AC-105 ya estaban cubiertos (`bookings-api`, `create-booking`, `password`); no se reescribieron.
 
-- [ ] **10.5 Prueba de carga**
+- [x] **10.5 Prueba de carga**
   - **Objetivo:** medir p95 de disponibilidad y tarifas con 20 usuarios durante 5 minutos.
   - **Depende de:** —
   - **⚠️ Confirmar P-08** antes de escribir código.
@@ -589,8 +593,9 @@ npx prisma migrate deploy && npx prisma generate
     4. Correr contra `npm run build && npm start`, no contra `next dev`; el catálogo es el base (6 categorías, 20 unidades).
   - **Verificación:** `npx tsx scripts/load-availability.ts` → p95 < 1,5 s y exit 0.
   - **Ref:** [plan §10.5](./plan_implementacion_v1.0.0.md) | RNF-04 · AC-104 | D-15 | P-08
+  - **Hecho (2026-10-15):** `scripts/load-availability.ts` contra `npm run build && npm start`: 46.768 pedidos, 0 fallos, p50 125 ms, p95 181 ms, p99 222 ms. P-08: default del plan (localhost). Sin script `load` en package.json.
 
-- [ ] **10.6 Auditoría de trazabilidad**
+- [x] **10.6 Auditoría de trazabilidad**
   - **Objetivo:** que ningún AC quede sin test o verificación manual.
   - **Depende de:** 10.1–10.4
   - **Archivos a crear:** —
@@ -601,8 +606,9 @@ npx prisma migrate deploy && npx prisma generate
     3. Informar los huecos al usuario **antes** de agregar nada que cambie comportamiento.
   - **Verificación:** la lista de AC faltantes es vacía, o cada uno tiene una verificación manual anotada en el Checklist · `npm test` en verde.
   - **Ref:** [plan §10.6](./plan_implementacion_v1.0.0.md) | AC-01..108
+  - **Hecho (2026-10-15):** AC-01..108 todos aparecen en `tests/` o `scripts/`; AC-104 lo cubre el script de carga. Sin huecos.
 
-- [ ] **10.7 `npm audit` y revisión de seguridad**
+- [x] **10.7 `npm audit` y revisión de seguridad**
   - **Objetivo:** sin vulnerabilidades altas o críticas y con un informe de seguridad al usuario.
   - **Depende de:** —
   - **Archivos a crear:** —
@@ -613,6 +619,7 @@ npx prisma migrate deploy && npx prisma generate
     3. No cambiar alcance: los hallazgos son un informe.
   - **Verificación:** `npm audit --audit-level=high` → sin altas ni críticas sin resolver (o con la justificación aprobada) · informe entregado al usuario.
   - **Ref:** [plan §10.7](./plan_implementacion_v1.0.0.md) | RNF-05, RNF-06 · AC-107
+  - **Hecho (2026-10-15):** `npm audit`: 4 paquetes altos (`braces`/`micromatch`/`fast-glob` vía `eslint-config-next`; `deepmerge-ts` y `mysql2` vía el CLI de `prisma`), todos de herramientas de desarrollo. Arreglo propuesto, sin aplicar (requiere D-xx): `prisma` 7.10.1 (patch) y `eslint-config-next` (mayor). Informe de seguridad entregado al usuario.
 
 - [ ] **10.8 Cron real durante 60 minutos**
   - **Objetivo:** comprobar que el scheduler ejecuta el tick cada ≤ 15 min.

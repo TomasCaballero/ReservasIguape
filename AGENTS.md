@@ -41,7 +41,7 @@ Motor de reservas público + panel admin (PMS) de Iguapé Aparts, en una sola ap
 - PostgreSQL 17 (`btree_gist`) + Prisma 7.10.0 (cliente generado en `app/generated/prisma`). Desarrollo: Postgres local, base `reservas_iguape`; Supabase queda para más adelante.
 - Login propio del admin con Argon2id (`argon2`), sin Supabase Auth.
 - `react-day-picker` + `date-fns`: fechas mostradas como `dd/MM/yyyy`.
-- Tests: Vitest 5 (unitarios y de base) y Playwright (e2e, `workers: 1`).
+- Tests: Vitest 5 (unitarios y de base) y Playwright (e2e, `workers: 1`). Cierre: `full-flow`, `responsive-keyboard` y `style-audit` en `tests/e2e/`.
 - Dev server en `http://localhost:7777`. Portal público: `/`. Panel admin: `/adminpanel`.
 
 ---
@@ -59,6 +59,11 @@ npx playwright test
 npx vitest run tests/unit/pricing.test.ts
 npx vitest run -t "<nombre del test>"
 npx playwright test tests/e2e/booking.spec.ts
+# Carga (RNF-04): contra el build de producción, en otra terminal
+npm run build && npm start
+npx tsx scripts/load-availability.ts   # opcionales: BASE_URL, WORKERS=20, SECONDS=300
+# Cron: el scheduler externo llama como máximo cada 15 min
+curl -X POST http://localhost:7777/api/cron/tick -H "Authorization: Bearer $CRON_SECRET"
 # Tipos, lint y build
 npx tsc --noEmit
 npx eslint .

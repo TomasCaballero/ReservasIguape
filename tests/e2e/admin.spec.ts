@@ -71,6 +71,26 @@ test.describe("control de acceso (AC-106)", () => {
     await expect(page.locator("#email")).toBeVisible();
   });
 
+  test("todas las rutas del panel sin sesión muestran el login y ninguna API admin devuelve datos", async ({ page, request }) => {
+    const routes = ["", "reservas", "calendario", "clientes", "ical", "categorias", "unidades", "temporadas", "descuentos", "parametros"];
+    for (const route of routes) {
+      await page.goto(`/adminpanel/${route}`);
+      await expect(page).toHaveURL(/\/adminpanel$/);
+      await expect(page.locator("#email")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Bienvenido" })).toHaveCount(0);
+    }
+    const id = "00000000-0000-4000-8000-000000000000";
+    for (const [method, url] of [
+      ["get", "/api/admin/me"],
+      ["get", `/api/admin/payments/${id}/receipt`],
+      ["post", `/api/admin/bookings/${id}/payments`],
+    ] as const) {
+      const res = await request[method](url);
+      expect(res.status(), `${method} ${url}`).toBe(401);
+      expect(await res.json()).toEqual({ error: { code: "UNAUTHORIZED", message: "No autorizado" } });
+    }
+  });
+
   test("la API administrativa responde 401 sin datos", async ({ request }) => {
     const res = await request.get("/api/admin/me");
     expect(res.status()).toBe(401);
