@@ -23,9 +23,9 @@
 
 > Esta sección la actualiza el modelo de IA al terminar cada tarea. Es lo primero que debe leer quien retoma el trabajo.
 
-- **Fase en curso:** Fase 8 — CRM cerrada (7/7); falta la aprobación del usuario para commitear y pushear.
-- **Próxima tarea:** **9.1 Exportación `.ics`** (Fase 9), tras el commit de la Fase 8.
-- **Última tarea completada:** 8.7 (tests de la Fase 8).
+- **Fase en curso:** Fase 9 — iCal y cron cerrada (11/11); falta la aprobación del usuario para commitear y pushear.
+- **Próxima tarea:** **10.1** (Fase 10), tras el commit de la Fase 9.
+- **Última tarea completada:** 9.11 (tests de la Fase 9).
 - **Rama de trabajo:** `main`. Hay cambios sin commitear: `AGENTS.md` (regenerado con la skill `create-agents-md`), `docs/` (plan y tareas), `FASES.md` y las skills nuevas de `skills/`. No commitear sin aprobación.
 - **Documentos creados:** [`AGENTS.md`](../AGENTS.md), [`plan_implementacion_v1.0.0.md`](./plan_implementacion_v1.0.0.md), este archivo.
 - **Puntos abiertos pendientes de confirmar:** ninguno. El usuario delegó `P-01`..`P-09` y `D-04` al criterio del agente (2026-10-15); se aplican los defaults del plan, incluida la migración del índice único parcial de `D-04`. Antes de 10.8 hay que coordinar con el usuario la configuración real del scheduler (`P-03`).
@@ -210,11 +210,11 @@ npx prisma migrate deploy && npx prisma generate
 ## Resumen de Progreso por Fase
 
 - [x] Fase 8 — CRM (7/7)
-- [ ] Fase 9 — iCal y procesos programados (0/11)
+- [x] Fase 9 — iCal y procesos programados (11/11)
 - [ ] Fase 10 — Cierre (0/10)
 - [ ] Checklist de Verificación Pre-Release (0/22)
 
-**Total: 7/50** (28 tareas de desarrollo + 22 verificaciones pre-release)
+**Total: 18/50** (28 tareas de desarrollo + 22 verificaciones pre-release)
 
 ---
 
@@ -345,7 +345,7 @@ npx prisma migrate deploy && npx prisma generate
 > **Regla de la fase:** el feed y los logs no llevan datos de huéspedes; un feed externo caído **nunca** libera fechas; los `SUMMARY` importados no se guardan. Los endpoints `/api/ical/*` y `/api/cron/*` están fuera de `proxy.ts`: se validan a sí mismos.
 > **Cobertura PRD:** RF-54, RF-56, RF-63, RF-64, RF-65, RF-66, RF-67 · RNF-06, RNF-07 · AC-79, AC-80, AC-81, AC-87, AC-98, AC-99, AC-100, AC-101, AC-108
 
-- [ ] **9.1 Exportación `.ics`**
+- [x] **9.1 Exportación `.ics`**
   - **Objetivo:** construir el feed de una unidad con solo fechas ocupadas.
   - **Depende de:** —
   - **⚠️ Confirmar P-02** antes de escribir código.
@@ -358,8 +358,9 @@ npx prisma migrate deploy && npx prisma generate
     4. Ningún campo sale de `Customer` ni de `Guest`. (Tests en 9.11.)
   - **Verificación:** `npx tsc --noEmit` → 0 errores · `npx eslint .` limpio · `npm test` → sin regresiones.
   - **Ref:** [plan §9.1](./plan_implementacion_v1.0.0.md) | RF-63 · AC-98 | D-08 | P-02
+  - **Hecho (2026-10-15):** `lib/ical/export.ts` (`buildFeed`, `loadFeedEvents`); P-02: sin bloqueos `ICAL`.
 
-- [ ] **9.2 Ruta pública del feed**
+- [x] **9.2 Ruta pública del feed**
   - **Objetivo:** `GET /api/ical/<token>.ics` entrega el feed o responde 404.
   - **Depende de:** 9.1
   - **Archivos a crear:** `app/api/ical/[token]/route.ts`.
@@ -371,8 +372,9 @@ npx prisma migrate deploy && npx prisma generate
     4. Correr `npx next typegen`. No tocar `proxy.ts`.
   - **Verificación:** `npx next typegen && npx tsc --noEmit` → 0 errores · manual con el dev server: `curl -i http://localhost:7777/api/ical/xxx.ics` → 404 · `npm test` → sin regresiones. (Tests en 9.11.)
   - **Ref:** [plan §9.2](./plan_implementacion_v1.0.0.md) | RF-63 · RNF-06 · AC-98, AC-108 | D-08
+  - **Hecho (2026-10-15):** `app/api/ical/[token]/route.ts`; typegen y `tsc` en 0 errores.
 
-- [ ] **9.3 Parser iCal mínimo**
+- [x] **9.3 Parser iCal mínimo**
   - **Objetivo:** convertir el texto de un feed en eventos `{ uid, start, end }`.
   - **Depende de:** —
   - **Archivos a crear:** `lib/ical/parse.ts`.
@@ -383,8 +385,9 @@ npx prisma migrate deploy && npx prisma generate
     3. Ignorar `SUMMARY` y `DESCRIPTION` (D-07). Sin dependencias nuevas. (Tests en 9.11.)
   - **Verificación:** `npx tsc --noEmit` → 0 errores · `npx eslint .` limpio · `npm test` → sin regresiones.
   - **Ref:** [plan §9.3](./plan_implementacion_v1.0.0.md) | RF-65 · AC-99 | D-07
+  - **Hecho (2026-10-15):** `lib/ical/parse.ts`; DATE-TIME en UTC pasa a fecha de Buenos Aires, flotante/TZID usa su propia fecha.
 
-- [ ] **9.4 Motor de sincronización**
+- [x] **9.4 Motor de sincronización**
   - **Objetivo:** `syncAll` importa, actualiza y borra bloqueos iCal por `UID` y registra cada corrida.
   - **Depende de:** 9.3
   - **⚠️ Confirmar P-01** antes de escribir código.
@@ -399,8 +402,9 @@ npx prisma migrate deploy && npx prisma generate
     6. `fetchText` inyectable. Eventos pasados o cancelados se ignoran. No guardar `SUMMARY`. (Tests en 9.11.)
   - **Verificación:** `npx tsc --noEmit` → 0 errores · `npx eslint .` limpio · `npm test` → sin regresiones.
   - **Ref:** [plan §9.4](./plan_implementacion_v1.0.0.md) | RF-65, 66, 67 · RNF-03 · AC-99, 100, 101 | D-09, D-10 | P-01
+  - **Hecho (2026-10-15):** `lib/ical/sync.ts` (`syncAll`, `defaultFetch`); P-01 default; el resumen de la corrida lleva solo conteos.
 
-- [ ] **9.5 Fuentes de importación**
+- [x] **9.5 Fuentes de importación**
   - **Objetivo:** alta y baja de las URLs iCal de cada unidad.
   - **Depende de:** —
   - **Archivos a crear:** `lib/admin/ical-sources.ts`.
@@ -411,8 +415,9 @@ npx prisma migrate deploy && npx prisma generate
     3. `removeIcalSource(db, id)`: borra la fuente y, por cascada, sus bloqueos. (Tests en 9.11.)
   - **Verificación:** `npx tsc --noEmit` → 0 errores · `npx eslint .` limpio · `npm test` → sin regresiones.
   - **Ref:** [plan §9.5](./plan_implementacion_v1.0.0.md) | RF-64 | D-09 | P-13
+  - **Hecho (2026-10-15):** `lib/admin/ical-sources.ts` y `parseIcalSource` en `validation.ts` (etiqueta ≤ 40, URL http/https ≤ 500).
 
-- [ ] **9.6 Pantalla iCal y sincronización manual**
+- [x] **9.6 Pantalla iCal y sincronización manual**
   - **Objetivo:** el administrador ve la URL del feed por unidad, gestiona fuentes y pulsa "Sincronizar ahora".
   - **Depende de:** 9.2, 9.4, 9.5
   - **Archivos a crear:** `app/adminpanel/ical/page.tsx`, `app/adminpanel/ical-actions.ts`, `components/admin/IcalSourceForm.tsx`, `components/admin/SyncNowButton.tsx`.
@@ -425,8 +430,9 @@ npx prisma migrate deploy && npx prisma generate
     5. Sin scroll horizontal de 360 a 1920 px; solo tokens existentes.
   - **Verificación:** `npx next typegen && npx tsc --noEmit` → 0 errores · `npx eslint .` limpio · `npm test` y `npx playwright test` → sin regresiones · manual: abrir `/adminpanel/ical` a 360 px y 1920 px sin scroll horizontal. (Tests en 9.11.)
   - **Ref:** [plan §9.6](./plan_implementacion_v1.0.0.md) | RF-63, 64, 67 · RNF-01 · AC-101, AC-106 | D-09, D-10 | P-14
+  - **Hecho (2026-10-15):** `/adminpanel/ical`, `ical-actions.ts`, `IcalSourceForm`, `SyncNowButton`, entrada "iCal" en `AdminShell`; sin scroll horizontal a 360 y 1920 px (cubierto en e2e).
 
-- [ ] **9.7 Vencimiento de Pendientes**
+- [x] **9.7 Vencimiento de Pendientes**
   - **Objetivo:** cancelar por vencimiento las Pendientes sin cobros cuyo plazo corrió desde el envío del método de pago.
   - **Depende de:** —
   - **Archivos a crear:** `lib/admin/expiry.ts`.
@@ -437,8 +443,9 @@ npx prisma migrate deploy && npx prisma generate
     3. Una reserva sin envío registrado no vence. Devolver la cantidad. (Tests en 9.11.)
   - **Verificación:** `npx tsc --noEmit` → 0 errores · `npx eslint .` limpio · `npm test` → sin regresiones.
   - **Ref:** [plan §9.7](./plan_implementacion_v1.0.0.md) | RF-54 · AC-79, 80, 81 | D-12 | F7-3
+  - **Hecho (2026-10-15):** `lib/admin/expiry.ts`: un `UPDATE … RETURNING` con el plazo de `SystemSettings` y `now()` de la base.
 
-- [ ] **9.8 Limpieza de comprobantes**
+- [x] **9.8 Limpieza de comprobantes**
   - **Objetivo:** borrar los archivos de comprobante de más de 3 meses conservando los datos del cobro, y avisarlo en el detalle.
   - **Depende de:** —
   - **Archivos a crear:** `lib/cron/jobs.ts` (con `cleanupReceipts`).
@@ -449,8 +456,9 @@ npx prisma migrate deploy && npx prisma generate
     3. En el detalle de reserva, un cobro con `receiptUploadedAt` y sin `receiptPath` muestra "Comprobante eliminado (más de 3 meses)". (Tests en 9.11.)
   - **Verificación:** `npx tsc --noEmit` → 0 errores · `npx eslint .` limpio · `npm test` y `npx playwright test` → sin regresiones.
   - **Ref:** [plan §9.8](./plan_implementacion_v1.0.0.md) | RF-56 · AC-87 | D-13 | P-15
+  - **Hecho (2026-10-15):** `cleanupReceipts` en `lib/cron/jobs.ts`; el detalle de reserva muestra "Comprobante eliminado (más de 3 meses)".
 
-- [ ] **9.9 Endpoint de cron**
+- [x] **9.9 Endpoint de cron**
   - **Objetivo:** `POST /api/cron/tick` autenticado con `CRON_SECRET` ejecuta las tareas programadas.
   - **Depende de:** 9.4, 9.7, 9.8
   - **Archivos a crear:** `lib/cron/auth.ts`, `app/api/cron/tick/route.ts`.
@@ -462,8 +470,9 @@ npx prisma migrate deploy && npx prisma generate
     4. `POST`: no autorizado → 401 sin datos; autorizado → resumen. No tocar `proxy.ts`. Correr `npx next typegen`.
   - **Verificación:** `npx next typegen && npx tsc --noEmit` → 0 errores · manual: `curl -i -X POST http://localhost:7777/api/cron/tick` → 401 y, con el `Authorization: Bearer` correcto (sin mostrar el secreto), 200 · `npm test` → sin regresiones. (Tests en 9.11.)
   - **Ref:** [plan §9.9](./plan_implementacion_v1.0.0.md) | RF-66 · AC-100 | D-11 | P-03 | A-V1-02
+  - **Hecho (2026-10-15):** `lib/cron/auth.ts`, `POST /api/cron/tick` (401 sin cuerpo si no autoriza); `runJobs(db, storage)` devuelve solo estados `ok`/detalle de conteos, sin mensajes de error.
 
-- [ ] **9.10 Limpieza de soft locks y throttles**
+- [x] **9.10 Limpieza de soft locks y throttles**
   - **Objetivo:** sacar soft locks vencidos y throttles viejos en cada tick.
   - **Depende de:** 9.9
   - **⚠️ Confirmar P-04** antes de escribir código.
@@ -476,8 +485,9 @@ npx prisma migrate deploy && npx prisma generate
     4. Sumarlas a `runJobs` con su `try/catch`. No tocar `lib/auth/login.ts`. (Tests en 9.11.)
   - **Verificación:** `npx tsc --noEmit` → 0 errores · `npx eslint .` limpio · `npm test` → sin regresiones (los tests de login siguen en verde).
   - **Ref:** [plan §9.10](./plan_implementacion_v1.0.0.md) | RNF-07 · RF-32 | D-11 | P-04 | A-V1-02
+  - **Hecho (2026-10-15):** `cleanupSoftLocks` y `cleanupThrottles` (P-04) sumadas a `runJobs`.
 
-- [ ] **9.11 Tests de la Fase 9**
+- [x] **9.11 Tests de la Fase 9**
   - **Objetivo:** cubrir AC-79..81, 87, 98..101 y 108 con unit, db y e2e.
   - **Depende de:** 9.1–9.10
   - **Archivos a crear:** `tests/unit/ical-parse.test.ts`, `tests/unit/ical-export.test.ts`, `tests/unit/cron-auth.test.ts`, `tests/db/ical-feed.test.ts`, `tests/db/ical-sync.test.ts`, `tests/db/expiry.test.ts`, `tests/db/cleanup.test.ts`, `tests/db/cron-tick.test.ts`, `tests/e2e/admin-ical.spec.ts`.
@@ -495,16 +505,17 @@ npx prisma migrate deploy && npx prisma generate
     10. Cada test limpia lo que crea.
   - **Verificación:** `npx vitest run tests/unit/ical-parse.test.ts tests/unit/ical-export.test.ts tests/unit/cron-auth.test.ts tests/db/ical-feed.test.ts tests/db/ical-sync.test.ts tests/db/expiry.test.ts tests/db/cleanup.test.ts tests/db/cron-tick.test.ts` → todos pasan · `npx playwright test tests/e2e/admin-ical.spec.ts` → todos pasan · `npm test`, `npx playwright test`, `npx tsc --noEmit`, `npx eslint .` en verde · consulta a la base: 0 fuentes, 0 corridas, 0 solicitudes y el resto como en §3.
   - **Ref:** [plan §9.11](./plan_implementacion_v1.0.0.md) | AC-79..81, 87, 98..101, 108 · RNF-06, RNF-07 | D-07..D-13
+  - **Hecho (2026-10-15):** 9 archivos de test nuevos (11 unit, 20 db, 4 e2e) + helper `icalSource`; `npm test` 206 pasan, `npx playwright test` 72 pasan; la base quedó en 0 fuentes, 0 corridas y 0 bloqueos. Sin cambios en `tests/e2e/db.ts` (no hicieron falta).
 
 > **✅ Definition of Done — Fase 9**
-> - [ ] Build de release limpio, `tsc` y `eslint` sin errores, suite Vitest y Playwright al 100 %.
-> - [ ] El feed trae las fechas sin datos personales (**AC-98**) y sin token válido responde 404 (**AC-108**); token de 128 bits (**RNF-06**).
-> - [ ] La importación bloquea la unidad y baja 1 la disponibilidad (**AC-99**); "Sincronizar ahora" funciona (**AC-101**); cada corrida queda registrada (**AC-100**).
-> - [ ] El vencimiento respeta el borde de 5 d (**AC-79**), la cancelación manual no lleva la marca (**AC-80**) y con cobro no vence (**AC-81**).
-> - [ ] La limpieza de comprobantes conserva los datos del cobro (**AC-87**).
-> - [ ] `/api/cron/tick` sin credencial responde 401 sin datos.
-> - [ ] Un feed caído no libera fechas; `SUMMARY` no se persiste ni se loguea; `P-01`, `P-02` y `P-04` registrados en §5.
-> - [ ] La base de desarrollo quedó limpia (§3).
+> - [x] Build de release limpio, `tsc` y `eslint` sin errores, suite Vitest y Playwright al 100 %.
+> - [x] El feed trae las fechas sin datos personales (**AC-98**) y sin token válido responde 404 (**AC-108**); token de 128 bits (**RNF-06**).
+> - [x] La importación bloquea la unidad y baja 1 la disponibilidad (**AC-99**); "Sincronizar ahora" funciona (**AC-101**); cada corrida queda registrada (**AC-100**).
+> - [x] El vencimiento respeta el borde de 5 d (**AC-79**), la cancelación manual no lleva la marca (**AC-80**) y con cobro no vence (**AC-81**).
+> - [x] La limpieza de comprobantes conserva los datos del cobro (**AC-87**).
+> - [x] `/api/cron/tick` sin credencial responde 401 sin datos.
+> - [x] Un feed caído no libera fechas; `SUMMARY` no se persiste ni se loguea; `P-01`, `P-02` y `P-04` registrados en §5.
+> - [x] La base de desarrollo quedó limpia (§3).
 
 ---
 

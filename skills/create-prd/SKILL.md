@@ -12,6 +12,7 @@ auditoría sale limpia.
 ## El template del curso (estructura obligatoria)
 
 # PRD-001: <nombre del proyecto> — <una línea de qué es>
+**Versión del sistema:** vX.Y.Z   (la versión del producto que este PRD define, no la del documento)
 ## Contexto y Problema           (el dolor real y para quién; personas: quién lo usa y qué necesita)
 ## Objetivos                     (qué significa ganar, a nivel producto)
 ## Requerimientos Funcionales    (RF-01, RF-02, … — "El sistema debe <una sola acción>")
@@ -35,12 +36,15 @@ Todo PRD debe declarar, en esta sección:
 
 - Si el usuario pide un PRD nuevo: hacele TODAS las preguntas que necesites ANTES
   de escribir (el dolor, las personas, las features core, las restricciones).
-  NO inventes requerimientos. Preguntá también qué tipo de proyecto es, para
+  NO inventes requerimientos. Preguntá qué versión del sistema define el PRD
+  (ej.: v1.0.0 para un MVP, o la versión siguiente si el sistema ya existe);
+  no la inventes. Preguntá también qué tipo de proyecto es, para
   decidir qué categorías de patrones de diseño aplican (no inventes patrones
   concretos sin confirmar).
 - Si el usuario trae un PRD existente: si no está en Markdown limpio, pasalo a
   Markdown. Validá que respete la estructura del template y decile qué secciones
-  faltan o están fuera de lugar. Si falta alguna, agregá el encabezado vacío para
+  faltan o están fuera de lugar (incluida la versión del sistema; si falta,
+  dejá `vX.Y.Z` y pedísela al usuario). Si falta alguna, agregá el encabezado vacío para
   dejar el molde completo, pero NO inventes requerimientos ni criterios. Excepción:
   en "Lineamientos de Implementación" escribí siempre el texto fijo de SOLID y
   buenas prácticas (es regla del curso) y dejá la elección de patrones pendiente
@@ -50,6 +54,7 @@ Todo PRD debe declarar, en esta sección:
 
 Auditá el contenido contra este checklist y marcá los problemas UNO POR UNO,
 diciendo dónde está cada uno y por qué:
+- ¿Está declarada la versión del sistema (vX.Y.Z) que define el PRD?
 - ¿Cada RF es atómico (una sola acción) y dice "debe"?
 - ¿Cada RNF tiene un número concreto? (no "rápido" → "< 3 s p95")
 - ¿Cada RF tiene al menos un AC que lo verifique?

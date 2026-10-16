@@ -54,3 +54,6 @@ next-env.d.ts
 
 # comprobantes de pago (RF-55): nunca al repositorio
 /storage/
+
+# graphify (grafo del repo, se regenera)
+/graphify-out/
