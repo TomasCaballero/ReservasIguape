@@ -4,6 +4,9 @@ const noindex = [{ key: "X-Robots-Tag", value: "noindex" }];
 
 const nextConfig: NextConfig = {
   /* config options here */
+  experimental: {
+    agentUpgrade: "security",
+  },
   turbopack: {
     rules: {
       "*.css": {
